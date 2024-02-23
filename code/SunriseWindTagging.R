@@ -155,7 +155,7 @@ tagLocations <- petersonTagsColChange %>%
   filter(tag_sensor_type == "Temperature") #winter skate only has temperature sensor, not depth
 write.csv(tagLocations,"tagCaptureLocations.csv", na = "") #replace all NAs with empty cells
 
-# figures & shit ----------------------------------------------------------
+# figures ----------------------------------------------------------
 
 #----- size distributions of tagged animals -----#
 sizeDist <- petersonTagsColChange %>%
@@ -268,7 +268,7 @@ depthUsePlot <- test %>%
         strip.text.x = element_text(size = 16, face = "bold"))
 depthUsePlot
 
-# omitted shit ------------------------------------------------------------
+# omitted ------------------------------------------------------------
 
 #Adjusting Structure of sunriseTags
 sunriseTags$Field.Number <- as.factor(sunriseTags$Field.Number)

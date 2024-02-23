@@ -62,7 +62,7 @@ library(ggsflabel)
 #devtools::install_github("yutannihilation/ggsflabel")
 
 
-# SHIT TO DO  -------------------------------------------------------------
+# TO DO  -------------------------------------------------------------
 
   #make a plot with the sync tags showing their positions? color coded by sync tag ID to see if any have moved within the first deployment? 
 
@@ -140,7 +140,7 @@ cceFathomPositions <- orstedPositionsMerged2 %>%
 cceFathomPositions
 write.csv(cceFathomPositions, paste0(owd, "/", "cceFathomPositions.csv"))  
 
-# figures & shit ----------------------------------------------------------
+# figures ----------------------------------------------------------
 
 #need to skip first two empty rows, create column headers, then actually read in the CSV
 #doing this because I'm lazy and I don't feel like creating a CSV from something I already have to use in fathom position

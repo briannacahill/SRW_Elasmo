@@ -64,8 +64,6 @@ library(ggsflabel)
 
 # TO DO  -------------------------------------------------------------
 
-  #make a plot with the sync tags showing their positions? color coded by sync tag ID to see if any have moved within the first deployment? 
-
 # importing data ----------------------------------------------------------
 
 orstedT1 <- list.files(path = "positioning/Orsted_T1_20221223",

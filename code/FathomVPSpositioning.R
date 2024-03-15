@@ -66,31 +66,41 @@ library(ggsflabel)
 
 # importing data ----------------------------------------------------------
 
-orstedT1 <- list.files(path = "positioning/Orsted_T1_20221223",
+orstedD1T1 <- list.files(path = "positioning/Orsted_D1T1_20221223",
                        pattern = "*.csv", full.names = TRUE) %>% 
   lapply(read_csv) %>% 
   lapply(\(x) mutate(x, across(SensorUnit, as.numeric))) %>% #some columns were logical while others were numeric, this allows them to be merged
-  bind_rows() 
-str(orstedT1)
-orstedT1_df <- as.data.frame(orstedT1)
-str(orstedT1_df)
+  bind_rows() %>% 
+  as.data.frame()
+str(orstedD1T1)
 
-orstedT1_df$EST <- with_tz(orstedT1_df$Time, "America/New_York")
+orstedD1T2 <- list.files(path = "positioning/Orsted_D1T2_20230304",
+                       pattern = "*.csv", full.names = TRUE) %>% 
+  lapply(read_csv) %>% 
+  lapply(\(x) mutate(x, across(SensorUnit, as.numeric))) %>% #some columns were logical while others were numeric, this allows them to be merged
+  bind_rows() %>% 
+  as.data.frame()
+str(orstedD1T2)
+
+orstedAllPos <- rbind(orstedD1T1, orstedD1T2)
+
+orstedAllPos$EST <- with_tz(orstedAllPos$Time, "America/New_York")
 
 #filter out high error estimates HPEm (HPEm > 10; Bohaboy et al., 2022)
-orstedT1_df <- orstedT1_df %>% 
+orstedAllPos <- orstedAllPos %>% 
   filter(HPEm < 10 | is.na(HPEm))
-summary(orstedT1_df$HPEm)
+summary(orstedAllPos$HPEm)
 
 #need to skip first two empty rows, create column headers, then actually read in the CSV
   #doing this because I'm lazy and I don't feel like creating a CSV from something I already have to use in fathom position
+  #probably easiest to use the most up to spec sheet containing tag information
 myDeviceCols <- as.character(read_excel("FPspec_T1_20221223.xlsx", sheet = "Devices", skip = 2, n_max = 1, col_names = FALSE)) #need to skip first two empty
 devices <- read_excel("FPspec_T1_20221223.xlsx", sheet = "Devices", skip = 2, col_names = myDeviceCols)
 devices <- as.data.frame(devices[-1,]) #removes first row (duplicate column header)
 str(devices)
 
 #also reading in the orsted tag metadata because we'll need species identifications and maybe other things?
-orstedTags <- read.csv ("Sunrise_Orsted_otn_metadata_tagging.xlsx - Tag Metadata.csv", header = TRUE)
+orstedTags <- read.csv ("Sunrise_Orsted_otn_metadata_tagging.xlsx - Tag Metadata.csv", header = TRUE) 
 #orstedTags <- clean_names(orstedTags)
 #orstedTags <- subset(orstedTags, select = -c(transmitter)) %>% 
   #mutate(Name = animal_id_floy_tag_id_pit_tag_code_etc)
@@ -103,29 +113,29 @@ orstedTags <- clean_names(orstedTags) %>%
 syncTags <- read.csv ("Receiever Internal Tag IDs.xlsx - Sheet1.csv", header = TRUE) %>% 
   mutate(transmitterID = Transmit.ID, 
          Type = "Sync") %>% 
-  select(-Transmit.ID)
+  dplyr::select(-Transmit.ID)
 
 knownSyncTags <- dplyr::bind_rows(orstedTags, syncTags) %>% 
   mutate(FullId = transmitterID)
 
 #merge the positions with the individual info
-orstedPositionsMerged1 <- merge(orstedT1_df, unique(devices)[, c("FullId", "Name", "SensorType")], by="FullId", all.x=TRUE)
-summary(as.factor(orstedPositionsMerged1$Name))
-orstedPositionsMerged2 <- merge(orstedPositionsMerged1, unique(knownSyncTags)[, c("FullId", "tag_sensor_type", "common_name_e", "sex", "Type")], by="FullId", all.x=TRUE)
-summary(as.factor(orstedPositionsMerged2$Name))
-head(orstedPositionsMerged2)
+orstedPosMerged <- merge(orstedAllPos, unique(devices)[, c("FullId", "Name", "SensorType")], by="FullId", all.x=TRUE)
+summary(as.factor(orstedPosMerged$Name))
+orstedPosMerged2 <- merge(orstedPosMerged, unique(knownSyncTags)[, c("FullId", "tag_sensor_type", "common_name_e", "sex", "Type")], by="FullId", all.x=TRUE)
+summary(as.factor(orstedPosMerged2$Name))
+head(orstedPosMerged2)
 
 #trying to populate common name column with species for the lobsta and horseshoe crabbos
-orstedPositionsMerged2 <- clean_names(orstedPositionsMerged2) %>% 
+orstedPosMerged2 <- clean_names(orstedPosMerged2) %>% 
   mutate(common_name_e = case_when(str_detect(name, "HSC") ~ "Horseshoe Crab",
                                    str_detect(name, "L") ~ "Lobster",
-                                   TRUE ~ as.character(common_name_e))) #no lobsta detected
-summary(as.factor(orstedPositionsMerged2$common_name_e))
+                                   TRUE ~ as.character(common_name_e))) 
+summary(as.factor(orstedPosMerged2$common_name_e))
 
 
 # summary and csv things --------------------------------------------------
 
-cceIndiv <- orstedPositionsMerged2 %>% 
+cceIndiv <- orstedPosMerged2 %>% 
   filter(common_name_e == "Horseshoe Crab" | common_name_e == "Lobster") %>% 
   group_by(name, full_id) %>% 
   summarise(count = n()) %>% 
@@ -133,7 +143,7 @@ cceIndiv <- orstedPositionsMerged2 %>%
 cceIndiv
 write.csv(cceIndiv, paste0(owd, "/", "ccePositionCounts.csv"))  
 
-cceFathomPositions <- orstedPositionsMerged2 %>% 
+cceFathomPositions <- orstedPosMerged2 %>% 
   filter(common_name_e == "Horseshoe Crab" | common_name_e == "Lobster")
 cceFathomPositions
 write.csv(cceFathomPositions, paste0(owd, "/", "cceFathomPositions.csv"))  

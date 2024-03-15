@@ -81,8 +81,6 @@ orstedD1T2 <- list.files(path = "positioning/Orsted_D1T2_20230304",
   bind_rows() %>% 
   as.data.frame()
 str(orstedD1T2)
- 
-#lets see if this works?
 
 orstedAllPos <- rbind(orstedD1T1, orstedD1T2)
 

@@ -135,6 +135,7 @@ summary(as.factor(orstedPosMerged2$common_name_e))
 
 # summary and csv things --------------------------------------------------
 
+#cornell tags
 cceIndiv <- orstedPosMerged2 %>% 
   filter(common_name_e == "Horseshoe Crab" | common_name_e == "Lobster") %>% 
   group_by(name, full_id) %>% 
@@ -147,6 +148,21 @@ cceFathomPositions <- orstedPosMerged2 %>%
   filter(common_name_e == "Horseshoe Crab" | common_name_e == "Lobster")
 cceFathomPositions
 write.csv(cceFathomPositions, paste0(owd, "/", "cceFathomPositions.csv"))  
+
+#HPEm values
+syncTagPosCounts <- orstedPosMerged2 %>% 
+  filter(type == "Sync") %>% 
+  group_by(name, full_id) %>% 
+  summarise(count = n()) %>% 
+  arrange(desc(count))
+
+syncTagPositions <- orstedPosMerged2 %>% 
+  filter(type == "Sync")
+write.csv(syncTagPositions, paste0(owd, "/", "syncTagPositions.csv"))  
+
+msRequest <- orstedPosMerged2 %>% 
+  filter(full_id == "A69-1601-60134" | full_id == "A69-1601-60141" | full_id == "A69-1601-60219")
+write.csv(msRequest, paste0(owd, "/", "msRequest_20240318.csv")) 
 
 # figures ----------------------------------------------------------
 

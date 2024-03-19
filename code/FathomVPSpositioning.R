@@ -87,9 +87,9 @@ orstedAllPos <- rbind(orstedD1T1, orstedD1T2)
 orstedAllPos$EST <- with_tz(orstedAllPos$Time, "America/New_York")
 
 #filter out high error estimates HPEm (HPEm > 10; Bohaboy et al., 2022)
-orstedAllPos <- orstedAllPos %>% 
-  filter(HPEm < 10 | is.na(HPEm))
-summary(orstedAllPos$HPEm)
+#orstedAllPos <- orstedAllPos %>% 
+  #filter(HPEm < 10 | is.na(HPEm))
+#summary(orstedAllPos$HPEm)
 
 #need to skip first two empty rows, create column headers, then actually read in the CSV
   #doing this because I'm lazy and I don't feel like creating a CSV from something I already have to use in fathom position

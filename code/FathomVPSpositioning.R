@@ -5,12 +5,6 @@
 #Output: hopefully some figures
 
 # packages and establishing relative pathways -----------------------------
-library(rstudioapi)
-setwd(dirname(rstudioapi::getSourceEditorContext()$path)) #Sets wd to where code is
-setwd('../Output') #Sets wd to where output file is
-owd <- getwd() #Names output file as object owd
-setwd('../Data') #Sets wd to where data is
-wd <- getwd() #Names data file as object wd
 
 #Packages
 library(ggplot2)
@@ -56,21 +50,34 @@ library(ctmm)
 library(sf)
 library(ggspatial)
 library(ggsflabel)
+library(amt)
 
 #devtools::install_github("ctmm-initiative/ctmm")
 #devtools::install_github("r-spatial/sf")
 #devtools::install_github("yutannihilation/ggsflabel")
 
+# relative pathways
+library(rstudioapi)
+setwd(dirname(rstudioapi::getSourceEditorContext()$path)) #Sets wd to where code is
+setwd('../Output') #Sets wd to where output file is
+owd <- getwd() #Names output file as object owd
+setwd('../Data') #Sets wd to where data is
+wd <- getwd() #Names data file as object wd
 
 # TO DO  -------------------------------------------------------------
 
+  # gotta get the symbology figured out and how to show different shapes in the same legend
+  # fix up sand tiger, sandbar and add smooth dogfish plots
+
 # importing data ----------------------------------------------------------
 
+#----- SRW deployment 1 -----#
 orstedD1T1 <- list.files(path = "positioning/Orsted_D1T1_20221223",
                        pattern = "*.csv", full.names = TRUE) %>% 
   lapply(read_csv) %>% 
   lapply(\(x) mutate(x, across(SensorUnit, as.numeric))) %>% #some columns were logical while others were numeric, this allows them to be merged
   bind_rows() %>% 
+  mutate(depPeriod = "Deployment 1") %>% 
   as.data.frame()
 str(orstedD1T1)
 
@@ -79,10 +86,22 @@ orstedD1T2 <- list.files(path = "positioning/Orsted_D1T2_20230304",
   lapply(read_csv) %>% 
   lapply(\(x) mutate(x, across(SensorUnit, as.numeric))) %>% #some columns were logical while others were numeric, this allows them to be merged
   bind_rows() %>% 
+  mutate(depPeriod = "Deployment 1") %>% 
   as.data.frame()
 str(orstedD1T2)
 
-orstedAllPos <- rbind(orstedD1T1, orstedD1T2)
+#----- SRW deployment 2 -----#
+orstedD2T3 <- list.files(path = "positioning/Orsted_D2T3_20230913",
+                         pattern = "*.csv", full.names = TRUE) %>% 
+  lapply(read_csv) %>% 
+  lapply(\(x) mutate(x, across(SensorUnit, as.numeric))) %>% #some columns were logical while others were numeric, this allows them to be merged
+  bind_rows() %>% 
+  mutate(depPeriod = "Deployment 2") %>% 
+  as.data.frame()
+str(orstedD2T3)
+
+orstedAllPos <- rbind(orstedD1T1, orstedD1T2, 
+                      orstedD2T3)
 
 orstedAllPos$EST <- with_tz(orstedAllPos$Time, "America/New_York")
 
@@ -94,8 +113,8 @@ orstedAllPos$EST <- with_tz(orstedAllPos$Time, "America/New_York")
 #need to skip first two empty rows, create column headers, then actually read in the CSV
   #doing this because I'm lazy and I don't feel like creating a CSV from something I already have to use in fathom position
   #probably easiest to use the most up to spec sheet containing tag information
-myDeviceCols <- as.character(read_excel("FPspec_T1_20221223.xlsx", sheet = "Devices", skip = 2, n_max = 1, col_names = FALSE)) #need to skip first two empty
-devices <- read_excel("FPspec_T1_20221223.xlsx", sheet = "Devices", skip = 2, col_names = myDeviceCols)
+myDeviceCols <- as.character(read_excel("FPspec_D1T1_20221223.xlsx", sheet = "Devices", skip = 2, n_max = 1, col_names = FALSE)) #need to skip first two empty
+devices <- read_excel("FPspec_D1T1_20221223.xlsx", sheet = "Devices", skip = 2, col_names = myDeviceCols)
 devices <- as.data.frame(devices[-1,]) #removes first row (duplicate column header)
 str(devices)
 
@@ -164,7 +183,57 @@ msRequest <- orstedPosMerged2 %>%
   filter(full_id == "A69-1601-60134" | full_id == "A69-1601-60141" | full_id == "A69-1601-60219")
 write.csv(msRequest, paste0(owd, "/", "msRequest_20240318.csv")) 
 
+# error comparison -----------------------------------------------------
+
+summary(orstedPosMerged2$hp_em)
+summary(orstedPosMerged2$hp_es)
+summary(orstedPosMerged2$rmse)
+summary(as.factor(orstedPosMerged2$dep_period))
+
+test <- orstedPosMerged2 %>% 
+  #filter(hp_em < 10) %>% 
+  group_by(dep_period) %>% 
+  summarise(count = n(), 
+            as_tibble_row(quantile(hp_es, na.rm = TRUE)), 
+            mean = mean(hp_es, na.rm = TRUE), 
+            sd = sd(hp_es, na.rm = TRUE))
+test
+
+kruskal.test(hp_em ~ dep_period, data = orstedPosMerged2)
+kruskal.test(hp_em ~ dep_period, data = orstedPosMerged2[orstedPosMerged2$hp_em < 10,])
+
+plotHPEm <- orstedPosMerged2 %>% 
+  filter(hp_em < 10) %>% 
+  group_by(dep_period) %>%
+  ggplot() +
+  geom_violin(aes(x = dep_period, y = hp_em)) +
+  theme_minimal() +
+  labs(title = NULL, x =NULL, y = "HPEm")
+
+plotHPEs <- orstedPosMerged2 %>% 
+  filter(hp_es < 50) %>% 
+  group_by(dep_period) %>%
+  ggplot() +
+  geom_violin(aes(x = dep_period, y = hp_es)) +
+  theme_minimal() +
+  labs(title = NULL, x =NULL, y = "HPEs")
+
+plotRMSE <- orstedPosMerged2 %>% 
+  filter(rmse < 10) %>% 
+  group_by(dep_period) %>%
+  ggplot() +
+  geom_violin(aes(x = dep_period, y = rmse)) +
+  theme_minimal() +
+  labs(title = NULL, x =NULL, y = "RMSE")
+
+errorComp <- ggarrange(plotHPEm, plotHPEs, plotRMSE, 
+                              ncol = 3, nrow = 1)
+errorComp
+
 # figures ----------------------------------------------------------
+
+
+# organizing station info -------------------------------------------------
 
 #need to skip first two empty rows, create column headers, then actually read in the CSV
 #doing this because I'm lazy and I don't feel like creating a CSV from something I already have to use in fathom position
@@ -184,14 +253,45 @@ sf_receivers <- sf::st_as_sf(stations, coords = c("Longitude", "Latitude"),
   sf::st_transform(32618)
 mapview::mapview(sf_receivers)
 
+# deployment target station info
+stations <- read_csv("sunrise_coords.csv") %>% 
+  as.data.frame() %>% 
+  dplyr::select(name, latitude, longitude, depth, dep_period) %>% 
+  mutate(name = as.factor(name), 
+         latitude = as.numeric(latitude),
+         longitude = as.numeric(longitude), 
+         depth = as.numeric(depth), 
+         dep_period = as.factor(dep_period))
+str(stations)
+
+sf_receivers <- sf::st_as_sf(stations, coords = c("longitude", "latitude"), 
+                             crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs") %>% 
+  #st_set_crs(32736) %>% 
+  sf::st_transform(32618)
+mapview::mapview(sf_receivers)
+
+test <- ggplot() +
+  geom_sf(data = sf_receivers, 
+          aes(color = "black"), size = 3.5) #this should be geom_sf but having CRS issues for some reason
+  
+
+# deployment time periods -------------------------------------------------
+
+D1start <- as.POSIXct("2022-07-30 12:00:00")
+D1end <- as.POSIXct("2023-05-17 08:00:00")
+D2start <- as.POSIXct("2023-05-17 15:55:00")
+D2end <- as.POSIXct("2023-10-27 08:00:00")
+
 # dusky MCP -------------------------------------------------------------------
 
-dusky1 <- orstedPositionsMerged2 %>% 
-  filter(common_name_e == "Dusky")
-str(dusky1)
+#----- D1 -----#
+duskyD1 <- orstedPosMerged2 %>% 
+  filter(common_name_e == "Dusky") %>% 
+  filter(est >= D1start & est < D1end)
+str(duskyD1)
 
 #test.track <- make_track(dusky1, longitude, latitude, time, crs=32618)
-test.track <- make_track(dusky1, longitude, latitude, time, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+test.track <- make_track(duskyD1, longitude, latitude, time, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 
 str(test.track)
 class(test.track)
@@ -206,7 +306,7 @@ head(dat.mcp$data)
 plot(dat.mcp, col = c('red','green','blue'))
 get_crs(dat.mcp)
 
-sf_duskyPositions <- sf::st_as_sf(dusky1, coords = c("longitude", "latitude"), 
+sf_duskyPositions <- sf::st_as_sf(duskyD1, coords = c("longitude", "latitude"), 
                                   crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs") %>% #"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs" "EPSG:4979"
   sf::st_transform(32618)
 
@@ -216,10 +316,11 @@ sf_duskyPositions <- sf::st_as_sf(dusky1, coords = c("longitude", "latitude"),
 
 confColor <- c(alpha("orange", 0.5), alpha("yellow", 0.2))
 library(shades)
-figure_duskyT1 <- ggplot() +
+figure_duskyD1 <- ggplot() +
   geom_sf(data = dat.mcp$mcp, aes(fill = c(alpha("orange", 0.5), alpha("yellow", 0.2))), size = 0.75, linewidth = 0.9) +
-  geom_sf(data = sf_duskyPositions, aes(color = "red"), alpha = 0.4, shape = 16) +
-  geom_sf(data = sf_receivers, aes(color = "black"), size = 3.5) +#this should be geom_sf but having CRS issues for some reason
+  geom_sf(data = sf_duskyPositions, aes(color = "red"), alpha = 0.4, shape = 19) +
+  geom_sf(data = subset(sf_receivers, sf_receivers$dep_period == "D1 target"), aes(color = "dark gray"), size = 2, shape = 17) +
+  geom_sf(data = subset(sf_receivers, sf_receivers$dep_period == "Deployment 1"), aes(color = "black"), size = 3.5, shape = 19) + #this should be geom_sf but having CRS issues for some reason
   annotation_scale(location = "bl", width_hint = 0.13) +
   annotation_north_arrow(location = "br", which_north = "true", 
                          pad_x = unit(0.45, "in"), pad_y = unit(0.01, "in"),
@@ -228,14 +329,20 @@ figure_duskyT1 <- ggplot() +
   ylim = c( st_bbox(sf_duskyPositions)[["ymin"]]-0.001,  st_bbox(sf_duskyPositions)[["ymax"]]+0.001))  +
   theme_minimal() +
   scale_fill_manual(values = c(alpha("orange", 0.5), alpha("yellow", 0.2)), labels = c("50%", "95%")) + #these effectively make the legend
-  scale_color_manual(values = c("black", "red"), labels = c("Receivers", "Animal positions")) + #these effectively make the legend
+  #scale_color_manual(values = c("black", "dark gray", "red"), labels = c("Active Receivers", "Deployed Receivers", "Animal positions")) + 
+  scale_colour_manual(name = "Receiver Status and Positions",
+                      labels = c("Active Receivers", "Deployed Receivers", "Animal positions"),
+                      values = c("black", "dark gray", "red")) +   
+  scale_shape_manual(name = "Receiver Status and Positions",
+                     labels = c("Active Receivers", "Deployed Receivers", "Animal positions"),
+                     values = c(19, 17, 19)) +
+#these effectively make the legend
   #scale_y_continuous(labels = scales::number_format(accuracy = 0.01)) +
   theme(panel.background = element_rect(fill = "white",
                                         color = "white"),
         plot.background = element_rect(fill = "white",
                                        color = "white")) +
-  labs(title = expression(paste("Space use by dusky sharks ", italic("Carcharhinus obscurus"))),
-       x =NULL, y = NULL, fill = "", color = "") + #, 
+  labs(title = "Deployment 1", x =NULL, y = NULL, fill = "", color = "") + #, 
   theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5), 
         axis.title.x = element_text(size= 14), 
         axis.text.x=element_text(size=12, color="black", hjust = 0.5),
@@ -248,7 +355,86 @@ figure_duskyT1 <- ggplot() +
         legend.spacing.y = unit(-0.1, 'cm'),
         legend.margin=margin(0,0,0,0),
         legend.box.margin=margin(0,0,0,0))
-figure_duskyT1
+figure_duskyD1
+ggsave(paste0(owd,"/","duskysharks_D1.png"))
+
+#----- D2 -----#
+duskyD2 <- orstedPosMerged2 %>% 
+  filter(common_name_e == "Dusky") %>% 
+  filter(est >= D2start & est < D2end)
+str(duskyD2)
+
+#test.track <- make_track(dusky1, longitude, latitude, time, crs=32618)
+test.track <- make_track(duskyD2, longitude, latitude, time, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+
+str(test.track)
+class(test.track)
+test.track
+summary(test.track)
+get_crs(test.track)
+test.track <- transform_coords(test.track, crs_to=32618)
+
+dat.mcp <- hr_mcp(test.track, levels = c(0.5, 0.95))
+dat.mcp
+head(dat.mcp$data)
+plot(dat.mcp, col = c('red','green','blue'))
+get_crs(dat.mcp)
+
+sf_duskyPositions <- sf::st_as_sf(duskyD2, coords = c("longitude", "latitude"), 
+                                  crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs") %>% #"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs" "EPSG:4979"
+  sf::st_transform(32618)
+
+#sf_duskyPositions <- sf::st_as_sf(dusky1, coords = c("longitude", "latitude")) %>% 
+#sf::st_set_crs(crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+#sf::st_transform(32618)
+
+confColor <- c(alpha("orange", 0.5), alpha("yellow", 0.2))
+library(shades)
+figure_duskyD2 <- ggplot() +
+  geom_sf(data = dat.mcp$mcp, aes(fill = c(alpha("orange", 0.5), alpha("yellow", 0.2))), size = 0.75, linewidth = 0.9) +
+  geom_sf(data = sf_duskyPositions, aes(color = "red"), alpha = 0.4, shape = 19) +
+  geom_sf(data = subset(sf_receivers, sf_receivers$dep_period == "D2 target"), aes(color = "dark gray"), size = 2, shape = 17) +
+  geom_sf(data = subset(sf_receivers, sf_receivers$dep_period == "Deployment 2"), aes(color = "black"), size = 3.5, shape = 19) + #this should be geom_sf but having CRS issues for some reason
+  annotation_scale(location = "bl", width_hint = 0.13) +
+  annotation_north_arrow(location = "br", which_north = "true", 
+                         pad_x = unit(0.45, "in"), pad_y = unit(0.01, "in"),
+                         style = north_arrow_fancy_orienteering) +
+  coord_sf(xlim = c( st_bbox(sf_duskyPositions)[["xmin"]]-0.001,  st_bbox(sf_duskyPositions)[["xmax"]]+0.001), 
+           ylim = c( st_bbox(sf_duskyPositions)[["ymin"]]-0.001,  st_bbox(sf_duskyPositions)[["ymax"]]+0.001))  +
+  theme_minimal() +
+  scale_fill_manual(values = c(alpha("orange", 0.5), alpha("yellow", 0.2)), labels = c("50%", "95%")) + #these effectively make the legend
+  #scale_color_manual(values = c("black", "dark gray", "red"), labels = c("Active Receivers", "Deployed Receivers", "Animal positions")) + 
+  scale_colour_manual(name = "Receiver Status and Positions",
+                      labels = c("Active Receivers", "Deployed Receivers", "Animal positions"),
+                      values = c("black", "dark gray", "red")) +   
+  scale_shape_manual(name = "Receiver Status and Positions",
+                     labels = c("Active Receivers", "Deployed Receivers", "Animal positions"),
+                     values = c(19, 17, 19)) +
+  #these effectively make the legend
+  #scale_y_continuous(labels = scales::number_format(accuracy = 0.01)) +
+  theme(panel.background = element_rect(fill = "white",
+                                        color = "white"),
+        plot.background = element_rect(fill = "white",
+                                       color = "white")) +
+  labs(title = "Deployment 2", x =NULL, y = NULL, fill = "", color = "") + #, 
+  theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5), 
+        axis.title.x = element_text(size= 14), 
+        axis.text.x=element_text(size=12, color="black", hjust = 0.5),
+        axis.title.y = element_text(size= 14),
+        axis.text.y=element_text(size=12, color="black"), 
+        legend.title = element_text(size = 12, face = "bold"),
+        legend.text = element_text(size = 10, face = "bold")) +
+  theme(legend.position= c(0.07, 0.95),
+        legend.justification= c("left", "top"),
+        legend.spacing.y = unit(-0.1, 'cm'),
+        legend.margin=margin(0,0,0,0),
+        legend.box.margin=margin(0,0,0,0))
+figure_duskyD2
+ggsave(paste0(owd,"/","duskysharks_D2.png"))
+
+duskyMCP <- ggarrange(figure_duskyD1, figure_duskyD2)
+duskyMCP
+annotate_figure(duskyMCP, top = text_grob(expression(paste("Space use by dusky sharks ", italic("Carcharhinus obscurus")))))
 ggsave(paste0(owd,"/","duskysharks_T1.png"))
 
 # sand tiger MCP -------------------------------------------------------------------

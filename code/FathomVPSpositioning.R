@@ -68,6 +68,7 @@ wd <- getwd() #Names data file as object wd
 
   # gotta get the symbology figured out and how to show different shapes in the same legend
   # fix up sand tiger, sandbar and add smooth dogfish plots
+  # lost receiver sync tag positions for D1 and D2, gotta fix this
 
 # importing data ----------------------------------------------------------
 
@@ -151,6 +152,10 @@ orstedPosMerged2 <- clean_names(orstedPosMerged2) %>%
                                    TRUE ~ as.character(common_name_e))) 
 summary(as.factor(orstedPosMerged2$common_name_e))
 
+filteredPos <- orstedPosMerged2 %>% 
+  filter(hp_em < 10) %>% #orstedPosMerged2
+  as.data.frame()
+str(filteredPos)
 
 # summary and csv things --------------------------------------------------
 
@@ -681,19 +686,19 @@ figure_syncT1
 ggsave(paste0(owd,"/","syncTags_T1.png"))
 
 
-# checking on missing receivers -------------------------------------------
+# D1 missing receivers -------------------------------------------
 
 ############ working on this in untitled 3 (unless it gets accidentally deleted)
-summary(as.factor(orstedPositionsMerged2$Type))
-syncTags1 <- orstedPositionsMerged2 %>% 
-  filter(Type == "Sync")
-summary(as.factor(syncTags1$Name))
-summary(syncTags1$HPEm)
+summary(as.factor(orstedPosMerged2$type))
+syncTags1 <- orstedPosMerged2 %>% 
+  filter(type == "Sync")
+summary(as.factor(syncTags1$name))
+summary(syncTags1$hp_em)
 
-missingSyncTags <- orstedPositionsMerged2 %>% 
-  filter(Type == "Sync") %>% 
-  filter(Name == "R1C1" | Name == "R1C2" | Name == "R1C3" | Name == "R1C4" | Name == "R1C5" | Name == "R1C6" | Name == "R1C8" | Name == "R2C6" |
-           Name == "R4C5" | Name == "R4C7") 
+missingSyncTags <- orstedPosMerged2 %>% 
+  filter(type == "Sync") %>% 
+  filter(name == "R1C1" | name == "R1C2" | name == "R1C3" | name == "R1C4" | name == "R1C5" | name == "R1C6" | name == "R1C8" | name == "R2C6" |
+           name == "R4C5" | name == "R4C7") 
 
 lostStationsT1 <- c("R1C1", "R1C2", "R1C3", "R1C4", "R1C5", 
                     "R1C6", "R1C8", "R2C6", "R4C5", "R4C7")  

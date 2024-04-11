@@ -66,8 +66,25 @@ wd <- getwd() #Names data file as object wd
 
 # reading in CSVs ---------------------------------------------------------
 
-sbuTags <- read.csv("sbuFathomPositions.csv", header = TRUE)
-syncTags <- read.csv("syncTagPositions.csv", header = TRUE)
+sbuTags <- read.csv("sbuFathomPositions.csv", header = TRUE) %>% 
+  mutate(full_id = as.factor(full_id), 
+         time = as.POSIXct(time), 
+         dep_period = as.factor(dep_period), 
+         est = as.POSIXct(est),
+         common_name_e = as.factor(common_name_e)) %>% 
+  as.data.frame()
+syncTags <- read.csv("syncTagPositions.csv", header = TRUE)  %>% 
+  mutate(full_id = as.factor(full_id), 
+         time = as.POSIXct(time), 
+         dep_period = as.factor(dep_period), 
+         est = as.POSIXct(est),
+         common_name_e = as.factor(common_name_e)) %>% 
+  as.data.frame()
+
+orstedPosMerged2 <- rbind(sbuTags, syncTags)
+
+sbuTags <- read.csv("sbuFathomPositions.csv", header = TRUE) 
+syncTags <- read.csv("syncTagPositions.csv", header = TRUE) 
 
 orstedPosMerged2 <- rbind(sbuTags, syncTags)
 
@@ -121,7 +138,7 @@ errorComp
 # figures ----------------------------------------------------------
 
 
-# organizing station info -------------------------------------------------
+# station info -------------------------------------------------
 
 stations <- read.csv("sunrise_coords.csv", header = TRUE) %>% 
   mutate(dep_period = as.factor(dep_period), 
@@ -145,7 +162,12 @@ D2end <- as.POSIXct("2023-10-27 08:00:00")
 #----- D1 -----#
 duskyD1 <- orstedPosMerged2 %>% 
   filter(common_name_e == "Dusky") %>% 
-  filter(est >= D1start & est < D1end)
+  filter(dep_period == "Deployment 1") %>% 
+  mutate(est = as.POSIXct(est), 
+         time = as.POSIXct(time),
+         name = as.factor(name)) %>% 
+  arrange(est) %>% 
+  arrange(name)
 str(duskyD1)
 
 #test.track <- make_track(dusky1, longitude, latitude, time, crs=32618)
@@ -183,16 +205,17 @@ figure_duskyD1 <- ggplot() +
   annotation_north_arrow(location = "br", which_north = "true", 
                          pad_x = unit(0.45, "in"), pad_y = unit(0.01, "in"),
                          style = north_arrow_fancy_orienteering) +
-  coord_sf(xlim = c( st_bbox(sf_duskyPositions)[["xmin"]]-0.001,  st_bbox(sf_duskyPositions)[["xmax"]]+0.001), 
-           ylim = c( st_bbox(sf_duskyPositions)[["ymin"]]-0.001,  st_bbox(sf_duskyPositions)[["ymax"]]+0.001))  +
+  #coord_sf(xlim = c( st_bbox(sf_duskyPositions)[["xmin"]]-0.001,  st_bbox(sf_duskyPositions)[["xmax"]]+0.001), 
+           #ylim = c( st_bbox(sf_duskyPositions)[["ymin"]]-0.001,  st_bbox(sf_duskyPositions)[["ymax"]]+0.001))  +
+  #coord_sf(xlim = c(-73, -72.5), ylim = c(40.72, 40.74)) +
   theme_minimal() +
   scale_fill_manual(values = c(alpha("orange", 0.5), alpha("yellow", 0.2)), labels = c("50%", "95%")) + #these effectively make the legend
   #scale_color_manual(values = c("black", "dark gray", "red"), labels = c("Active Receivers", "Deployed Receivers", "Animal positions")) + 
   scale_colour_manual(name = "Receiver Status and Positions",
-                      labels = c("Active Receivers", "Deployed Receivers", "Animal positions"),
+                      labels = c("Receiver Positions", "Target Locations", "Animal positions"),
                       values = c("black", "dark gray", "red")) +   
   scale_shape_manual(name = "Receiver Status and Positions",
-                     labels = c("Active Receivers", "Deployed Receivers", "Animal positions"),
+                     labels = c("Receiver Positions", "Target Locations", "Animal positions"),
                      values = c(19, 17, 19)) +
   #these effectively make the legend
   #scale_y_continuous(labels = scales::number_format(accuracy = 0.01)) +
@@ -219,7 +242,12 @@ ggsave(paste0(owd,"/","duskysharks_D1.png"))
 #----- D2 -----#
 duskyD2 <- orstedPosMerged2 %>% 
   filter(common_name_e == "Dusky") %>% 
-  filter(est >= D2start & est < D2end)
+  filter(dep_period == "Deployment 2") %>% 
+  mutate(est = as.POSIXct(est), 
+         time = as.POSIXct(time),
+         name = as.factor(name)) %>% 
+  arrange(est) %>% 
+  arrange(name)
 str(duskyD2)
 
 #test.track <- make_track(dusky1, longitude, latitude, time, crs=32618)
@@ -257,16 +285,16 @@ figure_duskyD2 <- ggplot() +
   annotation_north_arrow(location = "br", which_north = "true", 
                          pad_x = unit(0.45, "in"), pad_y = unit(0.01, "in"),
                          style = north_arrow_fancy_orienteering) +
-  coord_sf(xlim = c( st_bbox(sf_duskyPositions)[["xmin"]]-0.001,  st_bbox(sf_duskyPositions)[["xmax"]]+0.001), 
-           ylim = c( st_bbox(sf_duskyPositions)[["ymin"]]-0.001,  st_bbox(sf_duskyPositions)[["ymax"]]+0.001))  +
+  #coord_sf(xlim = c( st_bbox(sf_duskyPositions)[["xmin"]]-0.01,  st_bbox(sf_duskyPositions)[["xmax"]]+0.01), 
+           #ylim = c( st_bbox(sf_duskyPositions)[["ymin"]]-0.01,  st_bbox(sf_duskyPositions)[["ymax"]]+0.01))  +
   theme_minimal() +
   scale_fill_manual(values = c(alpha("orange", 0.5), alpha("yellow", 0.2)), labels = c("50%", "95%")) + #these effectively make the legend
   #scale_color_manual(values = c("black", "dark gray", "red"), labels = c("Active Receivers", "Deployed Receivers", "Animal positions")) + 
   scale_colour_manual(name = "Receiver Status and Positions",
-                      labels = c("Active Receivers", "Deployed Receivers", "Animal positions"),
+                      labels = c("Receiver Positions", "Target Locations", "Animal positions"),
                       values = c("black", "dark gray", "red")) +   
   scale_shape_manual(name = "Receiver Status and Positions",
-                     labels = c("Active Receivers", "Deployed Receivers", "Animal positions"),
+                     labels = c("Receiver Positions", "Target Locations", "Animal positions"),
                      values = c(19, 17, 19)) +
   #these effectively make the legend
   #scale_y_continuous(labels = scales::number_format(accuracy = 0.01)) +
@@ -282,7 +310,7 @@ figure_duskyD2 <- ggplot() +
         axis.text.y=element_text(size=12, color="black"), 
         legend.title = element_text(size = 12, face = "bold"),
         legend.text = element_text(size = 10, face = "bold")) +
-  theme(legend.position= c(0.07, 0.95),
+  theme(legend.position= "none", #c(0.07, 0.95),
         legend.justification= c("left", "top"),
         legend.spacing.y = unit(-0.1, 'cm'),
         legend.margin=margin(0,0,0,0),
@@ -297,7 +325,7 @@ ggsave(paste0(owd,"/","duskysharks_T1.png"))
 
 # sand tiger MCP -------------------------------------------------------------------
 
-sandtiger1 <- orstedPositionsMerged2 %>% 
+sandtiger1 <- orstedPosMerged2 %>% 
   filter(common_name_e == "Sand Tiger")
 
 test.track <- make_track(sandtiger1, longitude, latitude, time, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
@@ -564,15 +592,15 @@ firstLastD1 <- orstedPosMerged2 %>%
            name == "R4C5" | name == "R4C7") %>% 
   group_by(name) %>% 
   filter(est == min(est) | est == max(est)) %>% 
-  arrange(est) %>% 
-  arrange(name) 
-firstLastD1$position <- rep(c("first", "last"), times = length(unique(firstLastD1$name)))
+  arrange(est) %>% #gets everything in chronological order
+  arrange(name) #gets the names in alphabetical order
+firstLastD1$position <- rep(c("first position", "last position"), times = length(unique(firstLastD1$name)))
 
 lostStationsPositionsD1 <- ggplot() +
   geom_point(data = missingSyncTags_D1, aes(x = longitude, y = latitude, color = name), alpha = 0.1) +
   geom_point(data = filter(stations, dep_period == "Deployment 1"), aes(x = longitude, y = latitude, shape = status), size = 3) +
   geom_point(data = firstLastD1, aes(x = longitude, y = latitude, fill = name, shape = position), size = 5) +
-  scale_shape_manual(values = c("downloaded" = 19, "lost" = 4, "first" = 21, "last" = 22)) + 
+  scale_shape_manual(values = c("downloaded" = 19, "lost" = 4, "first position" = 21, "last position" = 22)) + 
   theme_minimal() +
   guides(colour = "none", #guide_legend(override.aes = list(alpha = 1)) 
          fill = "none") +

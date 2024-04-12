@@ -1,9 +1,71 @@
 
 # dBBMM testing -----------------------------------------------------------
 
+# movegroup testing -------------------------------------------------------
+
+library(movegroup)
+library(ggmap)
+
+register_google(key = "###", write = TRUE) # google key isn't working for me...
+
+#----- species and deployment specific info -----#
+
+mysavedir <- paste0(owd, "/dusky_D2_rasters") #new folders for each species and 
+
+### could potentially make this a for loop by making a list of each deployment (or year) and each species
+### then it would filter through all combos, creating separate rasters for each 
+duskyD2 <- orstedPosMerged2 %>% 
+  filter(common_name_e == "Dusky") %>% 
+  filter(dep_period == "Deployment 2") %>% 
+  mutate(est = as.POSIXct(est), 
+         time = as.POSIXct(time),
+         name = as.factor(name)) %>% 
+  arrange(est) %>% 
+  arrange(name)
+str(duskyD2)
+
+### When used together, the order of functions would be: movegroup, scaleraster, alignraster if required, plotraster.
+### movegroup is nice because it removes individuals that do not have enough positions/detections
+movegroup(
+  data = duskyD2,
+  ID = "name",
+  Datetime = "est",
+  Lat = "latitude",
+  Lon = "longitude",
+  savedir = mysavedir) #works with sandbar, sets temporary working directory for individual lever UDs
+
+# Having run the movegroup function example:
+scaleraster(path = mysavedir) #owd = output working directory established early on
+
+# Weighted by number of positions per ID, fewer locations = lower Weighting value = higher final 
+# UD values after dividing by Weighting. This scales all IDs up to match the group max.
+# I think this is only necessary if there is inbalance in receiver locations but since I'm working with positions not really necessary
+
+#Weighting <- sandtiger_data |>
+dplyr::group_by(full_id) |>
+  dplyr::summarise(N = n()) |> 
+  dplyr::filter(N > 23) |> 
+  dplyr::mutate(N = N / max(N, na.rm = TRUE)) |> 
+  dplyr::pull(N)
+
+#scaleraster(path = tempdir(), weighting = Weighting)
+
+#alginraster combines region-specific group-level UD into a single raster
+
+plotraster(
+  x = paste0(mysavedir, "/Scaled/All_Rasters_Scaled_Weighted_UDScaled.asc"),
+  mapsource = "google",
+  maptype = "terrain",
+  savedir = paste0(mysavedir, "Plot"),
+  xlatlon = paste0(mysavedir, "Scaled/All_Rasters_Scaled_Weighted_LatLon.asc"),
+  locationpoints = duskyD2 |> dplyr::rename(latitude = "Lat", longitude = "Lon"),
+  pointsincontourssave = paste0(mysavedir, "Scaled/pointsincontours.csv"))  
+# google key warning
+
+# move testing ------------------------------------------------------------
+
 library(move)
 
-#---- move testing -----#
 duskyD1 <- orstedPosMerged2 %>% 
   filter(common_name_e == "Dusky") %>% 
   filter(dep_period == "Deployment 1") %>% 

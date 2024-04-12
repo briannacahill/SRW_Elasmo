@@ -66,23 +66,6 @@ wd <- getwd() #Names data file as object wd
 
 # reading in CSVs ---------------------------------------------------------
 
-sbuTags <- read.csv("sbuFathomPositions.csv", header = TRUE) %>% 
-  mutate(full_id = as.factor(full_id), 
-         time = as.POSIXct(time), 
-         dep_period = as.factor(dep_period), 
-         est = as.POSIXct(est),
-         common_name_e = as.factor(common_name_e)) %>% 
-  as.data.frame()
-syncTags <- read.csv("syncTagPositions.csv", header = TRUE)  %>% 
-  mutate(full_id = as.factor(full_id), 
-         time = as.POSIXct(time), 
-         dep_period = as.factor(dep_period), 
-         est = as.POSIXct(est),
-         common_name_e = as.factor(common_name_e)) %>% 
-  as.data.frame()
-
-orstedPosMerged2 <- rbind(sbuTags, syncTags)
-
 sbuTags <- read.csv("sbuFathomPositions.csv", header = TRUE) 
 syncTags <- read.csv("syncTagPositions.csv", header = TRUE) 
 
@@ -663,6 +646,23 @@ ggsave(paste0(owd,"/","missingReceiversD1Positions.png"), width = 19, height = 1
 
 
 # omitted -----------------------------------------------------------------
+
+sbuTags <- read.csv("sbuFathomPositions.csv", header = TRUE) %>% 
+  mutate(full_id = as.factor(full_id), 
+         time = as.POSIXct(time), 
+         dep_period = as.factor(dep_period), 
+         est = as.POSIXct(est),
+         common_name_e = as.factor(common_name_e)) %>% 
+  as.data.frame()
+syncTags <- read.csv("syncTagPositions.csv", header = TRUE)  %>% 
+  mutate(full_id = as.factor(full_id), 
+         time = as.POSIXct(time), 
+         dep_period = as.factor(dep_period), 
+         est = as.POSIXct(est),
+         common_name_e = as.factor(common_name_e)) %>% 
+  as.data.frame()
+
+orstedPosMerged2 <- rbind(sbuTags, syncTags)
 
 #need to skip first two empty rows, create column headers, then actually read in the CSV
 #doing this because I'm lazy and I don't feel like creating a CSV from something I already have to use in fathom position

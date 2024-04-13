@@ -57,10 +57,9 @@ plotraster(
   mapsource = "google",
   maptype = "terrain",
   savedir = paste0(mysavedir, "Plot"),
-  xlatlon = paste0(mysavedir, "Scaled/All_Rasters_Scaled_Weighted_LatLon.asc"),
-  locationpoints = duskyD2 |> dplyr::rename(latitude = "Lat", longitude = "Lon"),
-  pointsincontourssave = paste0(mysavedir, "Scaled/pointsincontours.csv"))  
-# google key warning
+  xlatlon = paste0(mysavedir, "/Scaled/All_Rasters_Scaled_Weighted_LatLon.asc"),
+  locationpoints = duskyD2 |> dplyr::rename(lat = "latitude", lon = "longitude"),
+  pointsincontourssave = paste0(mysavedir, "/Scaled/pointsincontours.csv"))  
 
 # move testing ------------------------------------------------------------
 

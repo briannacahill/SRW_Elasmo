@@ -27,7 +27,6 @@ library(viridis)
 library(tidyverse)
 library(stringr)
 library(foreach)
-library(VTrack)
 library(mgcv)
 library(ggpubr)
 #library(strptime)
@@ -51,6 +50,7 @@ library(gratia)
 library(ggforce)
 library(janitor)
 library(gt)
+library(glatos)
 
 # formatting data  --------------------------------------------------------
 
@@ -148,6 +148,16 @@ test2 <- mergedDetectionsTags %>%
   group_by(tagger) %>%
   summarise(animals = n_distinct(tag_id))
 
+
+# unique individuals ------------------------------------------------------
+
+petersonAnimalsDetected <- mergedDetectionsTags %>% 
+  group_by(common_name) %>% 
+  summarise(indiv = n_distinct(tag_id))
+
+allAnimalsDetected <- mergedDetectionsTags %>% 
+  summarise(indiv = n_distinct(transmitter))
+
 # map stuff ---------------------------------------------------------------
 
 #----- exporting CSV for shark capture locations -----#
@@ -195,10 +205,10 @@ ggsave(paste0(owd,"/","SharkSizeDistributions.png"), width = 19, height = 10)
 #----- abacus plot for tagged animals near orsted receivers (n = 4, date = 5/7/23)-----#
 lims <- as.POSIXct(strptime(c("2022-05-15 00:00:00", "2023-11-30 11:59:59"), format = "%Y-%m-%d %H:%M:%S"))
 
-orstedAnimalDetections <- merge(detections, animalInfo, by = "Transmitter", all = TRUE) 
+#orstedAnimalDetections <- merge(detections, animalInfo, by = "Transmitter", all = TRUE) 
 
-orstedAnimalDetections <- orstedAnimalDetections %>%
-  filter(!is.na(Field.Number)) %>%
+orstedAnimalDetections <- mergedDetectionsTags %>%
+  filter(!is.na(tag_id)) %>%
   filter(!is.na(EST))
 
 check <- mergedDetectionsTags %>%
@@ -206,7 +216,7 @@ check <- mergedDetectionsTags %>%
   group_by(tag_id, common_name, release_date) %>%
   summarise(count = n())
 
-abacusOrsted <- test %>%
+abacusOrsted <- orstedAnimalDetections %>%
   filter(tag_sensor_type == "Temperature") %>% 
   filter(common_name != "Smooth hammerhead shark") %>% 
   ggplot() +
@@ -220,10 +230,10 @@ abacusOrsted <- test %>%
   scale_x_datetime(limits=lims, breaks = date_breaks("2 months"), labels=date_format("%b\n%Y")) +
   labs(title= "", x ="Date", y ="Animal Tag ID") + 
   theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5,),
-        axis.title.x = element_text(size=20, face = "bold"), 
-        axis.text.x=element_text(size=18, color="black", hjust = 0.5),
-        axis.title.y = element_text(size= 20, face = "bold"),
-        axis.text.y=element_text(size=12, color="black"),
+        axis.title.x = element_text(size=18, face = "bold"), 
+        axis.text.x=element_text(size=16, color="black", hjust = 0.5),
+        axis.title.y = element_text(size= 18, face = "bold"),
+        axis.text.y=element_text(size=8, color="black"),
         legend.title = element_text(size = 16, face = "bold"),
         legend.text = element_text(size = 14, face = "bold"),
         strip.text.y = element_text(size = 10, face = "bold"), 
